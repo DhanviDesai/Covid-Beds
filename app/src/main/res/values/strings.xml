@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Covid Beds</string>
+    <string name="source_https_apps_bbmpgov_in_covidbedstatus">Source : https://apps.bbmpgov.in/covidbedstatus/</string>
+
+    <string-array name="tab_names">
+        <item>Government</item>
+        <item>Private</item>
+<!--        <item>Government Medical Colleges</item>-->
+<!--        <item>Private Medical Colleges</item>-->
+    </string-array>
+</resources>
