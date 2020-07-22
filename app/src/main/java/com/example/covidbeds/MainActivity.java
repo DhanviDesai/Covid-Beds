@@ -30,6 +30,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CursorAdapter;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -47,6 +48,8 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
@@ -64,12 +67,17 @@ public class MainActivity extends AppCompatActivity {
     private Document responseDoc;
     private Toolbar toolbar;
     private TextView statusUpdate, disclaimer;
+    private ProgressBar mainProgressBar;
     private static final int INTERNET_PERMISSION = 1111;
     private static final int FINE_PERMISSION = 2222;
     private boolean isLocationGiven = false;
     private ViewPagerAdapter adapter;
     private boolean isNetworkAccessGiven = false;
     private FusedLocationProviderClient fusedLocationProviderClient;
+    private CovidBeds governmentFragment;
+    private CovidBeds privateFragment;
+    private Elements government_hospital_trs,government_medical_college_trs,private_hospital_trs,private_medical_college_trs;
+    private ExecutorService executorService = Executors.newFixedThreadPool(3);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,6 +89,7 @@ public class MainActivity extends AppCompatActivity {
         viewPager = findViewById(R.id.viewPager);
         statusUpdate = findViewById(R.id.statusUpdate);
         disclaimer = findViewById(R.id.disclaimer);
+        mainProgressBar = findViewById(R.id.mainProgressBar);
 
         setSupportActionBar(toolbar);
 
@@ -90,12 +99,6 @@ public class MainActivity extends AppCompatActivity {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, INTERNET_PERMISSION);
             }
         }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, FINE_PERMISSION);
-        } else {
-            setLocation();
-        }
-
 
         OkHttpClient okHttpClient = new OkHttpClient()
                 .newBuilder()
@@ -110,9 +113,6 @@ public class MainActivity extends AppCompatActivity {
         tab_names = getResources().getStringArray(R.array.tab_names);
 
         getResponseDoc();
-
-
-
 
         disclaimer.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -129,19 +129,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
-//    private final LocationListener mLocationListener = new LocationListener() {
-//        @Override
-//        public void onLocationChanged(@NonNull Location location) {
-//            Log.i("Location", String.valueOf(location.getLatitude()));
-//            Log.i("Location", String.valueOf(location.getLongitude()));
-//        }
-
-//    };
-
     public void setLocation() {
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
             // here to request the missing permissions, and then overriding
@@ -149,9 +140,7 @@ public class MainActivity extends AppCompatActivity {
             //                                          int[] grantResults)
             // to handle the case where the user grants the permission. See the documentation
             // for ActivityCompat#requestPermissions for more details.
-            return;
-
-
+            ActivityCompat.requestPermissions(this,new String[] {Manifest.permission.ACCESS_FINE_LOCATION},FINE_PERMISSION);
         }
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         fusedLocationProviderClient.getLastLocation()
@@ -161,8 +150,13 @@ public class MainActivity extends AppCompatActivity {
                         if(location == null){
                             return;
                         }
-                        Log.i("Location", location.toString());
-                        adapter = new ViewPagerAdapter(MainActivity.this, tab_names.length, responseDoc,location);
+                        privateFragment = new CovidBeds(MainActivity.this,location,private_hospital_trs,private_medical_college_trs,executorService);
+                        governmentFragment = new CovidBeds(MainActivity.this,location,government_hospital_trs,government_medical_college_trs,executorService);
+                        mainProgressBar.setVisibility(View.GONE);
+                        tabLayout.setVisibility(View.VISIBLE);
+                        statusUpdate.setVisibility(View.VISIBLE);
+                        disclaimer.setVisibility(View.VISIBLE);
+                        adapter = new ViewPagerAdapter(MainActivity.this, tab_names.length,governmentFragment,privateFragment);
                         viewPager.setAdapter(adapter);
                         new TabLayoutMediator(tabLayout, viewPager, new TabLayoutMediator.TabConfigurationStrategy() {
                             @Override
@@ -183,11 +177,15 @@ public class MainActivity extends AppCompatActivity {
         if(requestCode == INTERNET_PERMISSION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 getResponseDoc();
+            }else{
+                Toast.makeText(this, "Please give internet permission to access the website", Toast.LENGTH_SHORT).show();
             }
         }
         if(requestCode == FINE_PERMISSION){
             if(grantResults.length >0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
                 setLocation();
+            }else{
+                Toast.makeText(this, "Please give Location permission to filer based on your location", Toast.LENGTH_SHORT).show();
             }
         }
 
@@ -204,9 +202,20 @@ public class MainActivity extends AppCompatActivity {
                     responseDoc = Jsoup.parse(responseString);
                     Element section = responseDoc.select("section").first();
                     Element h2 = section.selectFirst("h2");
+                    Element government_hospital = responseDoc.select("#governmenthospital").first();
+                    Element government_medical_college = responseDoc.select("#government_medical_college").first();
+                    Element government_hospital_tbody = government_hospital.select("tbody").first();
+                    Element government_medical_college_tbody = government_medical_college.select("tbody").first();
+                    government_hospital_trs = government_hospital_tbody.select("tr");
+                    government_medical_college_trs = government_medical_college_tbody.select("tr");
+                    Element private_hospital = responseDoc.select("#private_hospital").first();
+                    Element private_medical_college = responseDoc.select("#private_medical_college").first();
+                    Element private_hospital_tbody = private_hospital.select("tbody").first();
+                    Element private_medical_college_tbody = private_medical_college.select("tbody").first();
+                    private_hospital_trs = private_hospital_tbody.select("tr");
+                    private_medical_college_trs = private_medical_college_tbody.select("tr");
+                    setLocation();
                     statusUpdate.setText(h2.text());
-                    statusUpdate.setVisibility(View.VISIBLE);
-                    disclaimer.setVisibility(View.VISIBLE);
 
 
                 }

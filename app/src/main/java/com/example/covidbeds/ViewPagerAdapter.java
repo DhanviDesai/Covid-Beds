@@ -14,21 +14,21 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 import org.jsoup.nodes.Document;
 
+import java.nio.channels.Pipe;
+
 
 public class ViewPagerAdapter extends FragmentStateAdapter {
 
     private int totalCount;
-    private Document responseDoc;
     private int position;
-    private GovernmentHospitals g;
-    private PrivateHospitals p;
-    private Location location;
+    private CovidBeds government;
+    private CovidBeds Private;
 
-    public ViewPagerAdapter(@NonNull FragmentActivity fragmentActivity, int totalCount, Document responseDoc,Location location) {
+    public ViewPagerAdapter(@NonNull FragmentActivity fragmentActivity, int totalCount,CovidBeds government, CovidBeds Private) {
         super(fragmentActivity);
         this.totalCount = totalCount;
-        this.responseDoc = responseDoc;
-        this.location = location;
+        this.government = government;
+        this.Private = Private;
     }
 
 
@@ -39,14 +39,11 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
         Log.i("Check",String.valueOf(position));
         switch (position) {
             case 0:
-               g = new GovernmentHospitals(location);
-                return g;
+                return government;
             case 1:
-                p = new PrivateHospitals(location);
-                return p;
+                return Private;
         }
-         g = new GovernmentHospitals(location);
-        return g;
+        return government;
     }
 
     @Override
@@ -57,9 +54,9 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
 
     public void filterResults(String s){
         if(position == 0){
-            g.filterData(s);
+            government.filterData(s);
         }else{
-            p.filterData(s);
+            Private.filterData(s);
         }
     }
 
