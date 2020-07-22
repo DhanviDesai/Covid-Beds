@@ -84,6 +84,8 @@ public class MainActivity extends AppCompatActivity {
     private CovidBeds privateFragment;
     private Elements government_hospital_trs,government_medical_college_trs,private_hospital_trs,private_medical_college_trs;
     private ExecutorService executorService = Executors.newFixedThreadPool(4);
+    private boolean gps_enabled = false;
+    private boolean network_enabled = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -104,57 +106,14 @@ public class MainActivity extends AppCompatActivity {
         isInternetPermissionGiven = ContextCompat.checkSelfPermission(this,Manifest.permission.INTERNET) == PackageManager.PERMISSION_GRANTED;
         isLocationGiven = ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
         if(!isInternetPermissionGiven){
-            new AlertDialog.Builder(this)
-                    .setTitle("Internet Permission")
-                    .setMessage("Please let the app use your internet, it needs it to access the website")
-                    .setPositiveButton("Okay", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-                            dialogInterface.dismiss();
-                        }
-                    })
-                    .show();
             ActivityCompat.requestPermissions(this,new String[] {Manifest.permission.INTERNET},INTERNET_PERMISSION);
         }
         if(!isLocationGiven){
-            new AlertDialog.Builder(this)
-                    .setTitle("Location Permission")
-                    .setMessage("Please let the app access your location. This is needed fot the app to filter facilities based on your location")
-                    .setPositiveButton("Okay", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-                            dialogInterface.dismiss();
-                        }
-                    })
-                    .show();
             ActivityCompat.requestPermissions(this,new String[] {Manifest.permission.ACCESS_FINE_LOCATION},FINE_PERMISSION);
         }
 
 
-        getGpsEnabled();
-
-        if(isNetworkAvailable() && isLocationGiven && isInternetPermissionGiven){
-            laterWork();
-        }else{
-            new AlertDialog.Builder(this)
-                    .setTitle("Internet Connectivity")
-                    .setMessage("The app needs internet connection to connect to website and display data. Please come back when you have internet")
-                    .setPositiveButton("Okay", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-                            finish();
-                        }
-                    })
-                    .show();
-        }
-
-
-    }
-
-    public void getGpsEnabled(){
         LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        boolean gps_enabled = false;
-        boolean network_enabled = false;
 
         try {
             gps_enabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
@@ -176,11 +135,33 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void onClick(DialogInterface paramDialogInterface, int paramInt) {
                             startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                            finish();
                         }
                     })
                     .setNegativeButton("Cancel",null)
                     .show();
         }
+
+            Log.i("Here", "Working");
+            gps_enabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
+            network_enabled = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+
+            if (isNetworkAvailable() && isLocationGiven && isInternetPermissionGiven && gps_enabled && network_enabled) {
+                laterWork();
+            } else {
+            new AlertDialog.Builder(this)
+                    .setTitle("Internet Connectivity")
+                    .setMessage("The app needs internet connection to connect to website and display data. Please come back when you have internet")
+                    .setPositiveButton("Okay", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            finish();
+                        }
+                    })
+                    .show();
+            }
+
+
 
     }
 
@@ -188,11 +169,14 @@ public class MainActivity extends AppCompatActivity {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) != PackageManager.PERMISSION_GRANTED) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, INTERNET_PERMISSION);
+            }else{
+                isInternetPermissionGiven = true;
             }
         }
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,new String[] {Manifest.permission.ACCESS_FINE_LOCATION},FINE_PERMISSION);
+        }else{
+            isLocationGiven = true;
         }
     }
 
@@ -281,16 +265,20 @@ public class MainActivity extends AppCompatActivity {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 isInternetPermissionGiven = true;
             }else{
-                Toast.makeText(this, "Please give internet permission to access the website", Toast.LENGTH_SHORT).show();
-                requestPermissionsApp();
+//                Toast.makeText(this, "Please give internet permission to access the website", Toast.LENGTH_SHORT).show();
+                if(!isInternetPermissionGiven){
+                    requestPermissionsApp();
+                }
             }
         }
         if(requestCode == FINE_PERMISSION){
             if(grantResults.length >0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
                 isLocationGiven = true;
             }else{
-                Toast.makeText(this, "Please give Location permission to filter based on your location", Toast.LENGTH_SHORT).show();
-                requestPermissionsApp();
+//                Toast.makeText(this, "Please give Location permission to filter based on your location", Toast.LENGTH_SHORT).show();
+                if(!isLocationGiven){
+                    requestPermissionsApp();
+                }
             }
         }
 
