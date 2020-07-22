@@ -1,5 +1,7 @@
 package com.example.covidbeds;
 
+import java.util.Collections;
+
 public class CovidBedsInfo implements Comparable<CovidBedsInfo> {
     private String mFacilityName;
     private int mGen;
@@ -9,6 +11,10 @@ public class CovidBedsInfo implements Comparable<CovidBedsInfo> {
     private int mTotal;
     private String type;
     private double dist;
+
+    public CovidBedsInfo(){
+        this.dist = 9999;
+    }
 
     public double getDist() {
         return dist;

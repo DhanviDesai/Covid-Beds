@@ -8,4 +8,9 @@
 <!--        <item>Government Medical Colleges</item>-->
 <!--        <item>Private Medical Colleges</item>-->
     </string-array>
+
+    <string-array name="fabItems">
+        <item>Distance</item>
+        <item>Beds</item>
+    </string-array>
 </resources>

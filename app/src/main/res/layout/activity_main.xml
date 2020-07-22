@@ -84,7 +84,6 @@
         android:background="@color/colorPrimary"
         android:elevation="4dp"
         android:fontFamily="@font/raleway"
-        android:visibility="gone"
         android:gravity="center"
         android:padding="8dp"
         android:text="@string/source_https_apps_bbmpgov_in_covidbedstatus"
@@ -93,8 +92,24 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
+        android:visibility="gone"
         app:layout_constraintTop_toBottomOf="@+id/tabLayout"
         app:layout_constraintVertical_bias="1.0" />
+
+<!--    <com.google.android.material.floatingactionbutton.FloatingActionButton-->
+<!--        android:id="@+id/fab"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_margin="8dp"-->
+<!--        android:visibility="gone"-->
+<!--        android:elevation="4dp"-->
+<!--        android:src="@drawable/filter_24"-->
+<!--        app:layout_constraintBottom_toTopOf="@+id/disclaimer"-->
+<!--        app:layout_constraintEnd_toEndOf="@+id/viewPager"-->
+<!--        app:layout_constraintHorizontal_bias="1.0"-->
+<!--        app:layout_constraintStart_toStartOf="parent"-->
+<!--        app:layout_constraintTop_toBottomOf="@+id/toolbar"-->
+<!--        app:layout_constraintVertical_bias="1.0" />-->
 
 
 

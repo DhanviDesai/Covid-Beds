@@ -36,7 +36,6 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
     @Override
     public Fragment createFragment(int position) {
         this.position = position;
-        Log.i("Check",String.valueOf(position));
         switch (position) {
             case 0:
                 return government;
@@ -62,8 +61,12 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
 
     @Override
     public long getItemId(int position) {
-        Log.i("ChechId",String.valueOf(position));
         this.position = position;
         return super.getItemId(position);
     }
+
+    public int getPosition(){
+        return this.position;
+    }
+
 }

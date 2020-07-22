@@ -1,6 +1,7 @@
 package com.example.covidbeds;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
@@ -10,6 +11,7 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -19,9 +21,12 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -37,6 +42,7 @@ import android.widget.Toast;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 
@@ -71,13 +77,13 @@ public class MainActivity extends AppCompatActivity {
     private static final int INTERNET_PERMISSION = 1111;
     private static final int FINE_PERMISSION = 2222;
     private boolean isLocationGiven = false;
+    private boolean isInternetPermissionGiven = false;
     private ViewPagerAdapter adapter;
-    private boolean isNetworkAccessGiven = false;
     private FusedLocationProviderClient fusedLocationProviderClient;
     private CovidBeds governmentFragment;
     private CovidBeds privateFragment;
     private Elements government_hospital_trs,government_medical_college_trs,private_hospital_trs,private_medical_college_trs;
-    private ExecutorService executorService = Executors.newFixedThreadPool(3);
+    private ExecutorService executorService = Executors.newFixedThreadPool(4);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,16 +99,106 @@ public class MainActivity extends AppCompatActivity {
 
         setSupportActionBar(toolbar);
 
+        requestPermissionsApp();
 
+        isInternetPermissionGiven = ContextCompat.checkSelfPermission(this,Manifest.permission.INTERNET) == PackageManager.PERMISSION_GRANTED;
+        isLocationGiven = ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+        if(!isInternetPermissionGiven){
+            new AlertDialog.Builder(this)
+                    .setTitle("Internet Permission")
+                    .setMessage("Please let the app use your internet, it needs it to access the website")
+                    .setPositiveButton("Okay", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            dialogInterface.dismiss();
+                        }
+                    })
+                    .show();
+            ActivityCompat.requestPermissions(this,new String[] {Manifest.permission.INTERNET},INTERNET_PERMISSION);
+        }
+        if(!isLocationGiven){
+            new AlertDialog.Builder(this)
+                    .setTitle("Location Permission")
+                    .setMessage("Please let the app access your location. This is needed fot the app to filter facilities based on your location")
+                    .setPositiveButton("Okay", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            dialogInterface.dismiss();
+                        }
+                    })
+                    .show();
+            ActivityCompat.requestPermissions(this,new String[] {Manifest.permission.ACCESS_FINE_LOCATION},FINE_PERMISSION);
+        }
+
+
+        getGpsEnabled();
+
+        if(isNetworkAvailable() && isLocationGiven && isInternetPermissionGiven){
+            laterWork();
+        }else{
+            new AlertDialog.Builder(this)
+                    .setTitle("Internet Connectivity")
+                    .setMessage("The app needs internet connection to connect to website and display data. Please come back when you have internet")
+                    .setPositiveButton("Okay", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            finish();
+                        }
+                    })
+                    .show();
+        }
+
+
+    }
+
+    public void getGpsEnabled(){
+        LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        boolean gps_enabled = false;
+        boolean network_enabled = false;
+
+        try {
+            gps_enabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        } catch(Exception ex) {
+            Log.i("error",ex.toString());
+        }
+
+        try {
+            network_enabled = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        } catch(Exception ex) {
+            Log.i("error",ex.toString());
+        }
+
+        if(!gps_enabled && !network_enabled) {
+            // notify user
+            new AlertDialog.Builder(this)
+                    .setMessage("GPS must be on to get your location")
+                    .setPositiveButton("Open", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface paramDialogInterface, int paramInt) {
+                            startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                        }
+                    })
+                    .setNegativeButton("Cancel",null)
+                    .show();
+        }
+
+    }
+
+    public void requestPermissionsApp(){
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) != PackageManager.PERMISSION_GRANTED) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, INTERNET_PERMISSION);
             }
         }
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,new String[] {Manifest.permission.ACCESS_FINE_LOCATION},FINE_PERMISSION);
+        }
+    }
 
+    public void laterWork(){
         OkHttpClient okHttpClient = new OkHttpClient()
                 .newBuilder()
-                .addInterceptor(new HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY))
                 .build();
 
         retrofit = new Retrofit.Builder()
@@ -123,9 +219,13 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(i);
             }
         });
+    }
 
-
-
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
 
@@ -133,13 +233,6 @@ public class MainActivity extends AppCompatActivity {
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
             ActivityCompat.requestPermissions(this,new String[] {Manifest.permission.ACCESS_FINE_LOCATION},FINE_PERMISSION);
         }
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
@@ -170,22 +263,34 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
+    @Override
+    public void onBackPressed() {
+        int position = adapter.getPosition();
+        if(position == 0){
+            super.onBackPressed();
+        }else{
+            TabLayout.Tab tab = tabLayout.getTabAt(0);
+            tab.select();
+        }
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if(requestCode == INTERNET_PERMISSION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                getResponseDoc();
+                isInternetPermissionGiven = true;
             }else{
                 Toast.makeText(this, "Please give internet permission to access the website", Toast.LENGTH_SHORT).show();
+                requestPermissionsApp();
             }
         }
         if(requestCode == FINE_PERMISSION){
             if(grantResults.length >0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                setLocation();
+                isLocationGiven = true;
             }else{
-                Toast.makeText(this, "Please give Location permission to filer based on your location", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Please give Location permission to filter based on your location", Toast.LENGTH_SHORT).show();
+                requestPermissionsApp();
             }
         }
 
@@ -216,8 +321,6 @@ public class MainActivity extends AppCompatActivity {
                     private_medical_college_trs = private_medical_college_tbody.select("tr");
                     setLocation();
                     statusUpdate.setText(h2.text());
-
-
                 }
             }
 
@@ -249,7 +352,5 @@ public class MainActivity extends AppCompatActivity {
 
         return super.onCreateOptionsMenu(menu);
     }
-
-
 
 }
