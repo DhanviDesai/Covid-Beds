@@ -1,4 +1,4 @@
-package com.example.covidbeds;
+package com.dhanvi.covidbeds;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -14,12 +14,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.graphics.Typeface;
-import android.location.Address;
-import android.location.Geocoder;
 import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -32,17 +27,12 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.CursorAdapter;
-import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 
@@ -51,14 +41,10 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import okhttp3.OkHttpClient;
-import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -146,10 +132,10 @@ public class MainActivity extends AppCompatActivity {
             gps_enabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
             network_enabled = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
 
-            if (isNetworkAvailable() && isLocationGiven && isInternetPermissionGiven && gps_enabled && network_enabled) {
+            if (isNetworkAvailable()) {
                 laterWork();
             } else {
-            new AlertDialog.Builder(this)
+            AlertDialog dialog = new AlertDialog.Builder(this)
                     .setTitle("Internet Connectivity")
                     .setMessage("The app needs internet connection to connect to website and display data. Please come back when you have internet")
                     .setPositiveButton("Okay", new DialogInterface.OnClickListener() {
@@ -157,8 +143,11 @@ public class MainActivity extends AppCompatActivity {
                         public void onClick(DialogInterface dialogInterface, int i) {
                             finish();
                         }
-                    })
-                    .show();
+                    }).create();
+
+            dialog.setCanceledOnTouchOutside(false);
+            dialog.show();
+
             }
 
 

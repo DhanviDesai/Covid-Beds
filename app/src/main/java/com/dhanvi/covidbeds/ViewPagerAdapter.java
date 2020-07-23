@@ -1,20 +1,9 @@
-package com.example.covidbeds;
-
-import android.location.Location;
-import android.util.Log;
+package com.dhanvi.covidbeds;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentPagerAdapter;
-import androidx.fragment.app.FragmentStatePagerAdapter;
-import androidx.lifecycle.Lifecycle;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
-
-import org.jsoup.nodes.Document;
-
-import java.nio.channels.Pipe;
 
 
 public class ViewPagerAdapter extends FragmentStateAdapter {

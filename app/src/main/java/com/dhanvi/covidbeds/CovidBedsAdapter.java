@@ -1,23 +1,18 @@
-package com.example.covidbeds;
+package com.dhanvi.covidbeds;
 
 import android.content.Context;
 import android.content.res.Resources;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Filter;
 import android.widget.Filterable;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import org.w3c.dom.Text;
-
 import java.util.ArrayList;
-import java.util.List;
 
 public class CovidBedsAdapter extends RecyclerView.Adapter<CovidBedsAdapter.CovidBedsHolder> implements Filterable {
 

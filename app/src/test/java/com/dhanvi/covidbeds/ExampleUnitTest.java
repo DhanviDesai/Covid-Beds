@@ -1,4 +1,4 @@
-package com.example.covidbeds;
+package com.dhanvi.covidbeds;
 
 import org.junit.Test;
 

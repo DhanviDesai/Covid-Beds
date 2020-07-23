@@ -1,6 +1,4 @@
-package com.example.covidbeds;
-
-import java.util.Collections;
+package com.dhanvi.covidbeds;
 
 public class CovidBedsInfo implements Comparable<CovidBedsInfo> {
     private String mFacilityName;
